@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-コイン計算機用シュート STL生成スクリプト（改訂版）
-2分割設計: 上部パーツ（ストレート）+ 下部パーツ（集約部）
+コイン計算機用シュート STL生成スクリプト（傾斜版）
+2分割設計: 上部パーツ（傾斜）+ 下部パーツ（集約部）
 
 要件:
 - 上部240×315mmの受け口
-- 最初の60mmくらいはストレート（幅を保つ）
-- 下部60mmで急激に直径100mmの円形出口に集約
+- 底面に20度の傾斜（奥から手前に向かって下る）
+- 下部で前端から40mmの位置に直径100mmの円形穴に集約
 """
 
 import numpy as np
@@ -18,45 +18,51 @@ TOP_WIDTH = 240
 TOP_DEPTH = 315
 BOTTOM_DIAMETER = 100
 WALL_THICKNESS = 2
-HEIGHT_PER_PART = 60  # 各パーツの高さ
+HEIGHT_PER_PART = 60  # 各パーツの基本高さ
 SEGMENTS = 32  # 円周の分割数
+SLOPE_ANGLE = 20  # 傾斜角度（度）
+HOLE_POSITION = 40  # 前端から穴の中心までの距離
+
+# 傾斜による高低差
+slope_drop = TOP_DEPTH * math.tan(math.radians(SLOPE_ANGLE))
 
 def create_upper_part():
     """
-    上部パーツを生成（ストレート部分）
-    240mm × 315mm の長方形がそのまま下まで続く
+    上部パーツを生成（傾斜したストレート部分）
+    240mm × 315mm の長方形、底面が20度傾斜
     """
     vertices = []
     faces = []
 
-    # 上部 - 長方形の頂点 (z = HEIGHT_PER_PART)
+    # 上部 - 長方形の頂点 (z = HEIGHT_PER_PART + slope)
+    # 奥側が高く、手前側が低い
     top_outer = [
-        [-TOP_WIDTH/2, -TOP_DEPTH/2, HEIGHT_PER_PART],
-        [TOP_WIDTH/2, -TOP_DEPTH/2, HEIGHT_PER_PART],
-        [TOP_WIDTH/2, TOP_DEPTH/2, HEIGHT_PER_PART],
-        [-TOP_WIDTH/2, TOP_DEPTH/2, HEIGHT_PER_PART],
+        [-TOP_WIDTH/2, -TOP_DEPTH/2, HEIGHT_PER_PART],  # 手前左
+        [TOP_WIDTH/2, -TOP_DEPTH/2, HEIGHT_PER_PART],   # 手前右
+        [TOP_WIDTH/2, TOP_DEPTH/2, HEIGHT_PER_PART + slope_drop],   # 奥右
+        [-TOP_WIDTH/2, TOP_DEPTH/2, HEIGHT_PER_PART + slope_drop],  # 奥左
     ]
 
     top_inner = [
         [-(TOP_WIDTH/2 - WALL_THICKNESS), -(TOP_DEPTH/2 - WALL_THICKNESS), HEIGHT_PER_PART],
         [(TOP_WIDTH/2 - WALL_THICKNESS), -(TOP_DEPTH/2 - WALL_THICKNESS), HEIGHT_PER_PART],
-        [(TOP_WIDTH/2 - WALL_THICKNESS), (TOP_DEPTH/2 - WALL_THICKNESS), HEIGHT_PER_PART],
-        [-(TOP_WIDTH/2 - WALL_THICKNESS), (TOP_DEPTH/2 - WALL_THICKNESS), HEIGHT_PER_PART],
+        [(TOP_WIDTH/2 - WALL_THICKNESS), (TOP_DEPTH/2 - WALL_THICKNESS), HEIGHT_PER_PART + slope_drop],
+        [-(TOP_WIDTH/2 - WALL_THICKNESS), (TOP_DEPTH/2 - WALL_THICKNESS), HEIGHT_PER_PART + slope_drop],
     ]
 
-    # 下部 - 同じサイズの長方形 (z = 0)
+    # 下部 - 同じ形だが傾斜 (z = slope at each y position)
     bottom_outer = [
-        [-TOP_WIDTH/2, -TOP_DEPTH/2, 0],
-        [TOP_WIDTH/2, -TOP_DEPTH/2, 0],
-        [TOP_WIDTH/2, TOP_DEPTH/2, 0],
-        [-TOP_WIDTH/2, TOP_DEPTH/2, 0],
+        [-TOP_WIDTH/2, -TOP_DEPTH/2, 0],  # 手前左
+        [TOP_WIDTH/2, -TOP_DEPTH/2, 0],   # 手前右
+        [TOP_WIDTH/2, TOP_DEPTH/2, slope_drop],   # 奥右
+        [-TOP_WIDTH/2, TOP_DEPTH/2, slope_drop],  # 奥左
     ]
 
     bottom_inner = [
         [-(TOP_WIDTH/2 - WALL_THICKNESS), -(TOP_DEPTH/2 - WALL_THICKNESS), 0],
         [(TOP_WIDTH/2 - WALL_THICKNESS), -(TOP_DEPTH/2 - WALL_THICKNESS), 0],
-        [(TOP_WIDTH/2 - WALL_THICKNESS), (TOP_DEPTH/2 - WALL_THICKNESS), 0],
-        [-(TOP_WIDTH/2 - WALL_THICKNESS), (TOP_DEPTH/2 - WALL_THICKNESS), 0],
+        [(TOP_WIDTH/2 - WALL_THICKNESS), (TOP_DEPTH/2 - WALL_THICKNESS), slope_drop],
+        [-(TOP_WIDTH/2 - WALL_THICKNESS), (TOP_DEPTH/2 - WALL_THICKNESS), slope_drop],
     ]
 
     # 外側の4つの壁
@@ -106,39 +112,49 @@ def create_upper_part():
 def create_lower_part():
     """
     下部パーツを生成（集約部分）
-    240mm × 315mm の長方形から直径100mmの円形に急激に集約
+    240mm × 315mm の長方形から前端40mmの位置に直径100mmの円形に集約
+    上面は傾斜している
     """
     vertices = []
     faces = []
 
-    # 上部 - 長方形 (z = HEIGHT_PER_PART)
+    # 上部 - 長方形（傾斜） (z = slope at each y position)
     top_outer = [
-        [-TOP_WIDTH/2, -TOP_DEPTH/2, HEIGHT_PER_PART],
-        [TOP_WIDTH/2, -TOP_DEPTH/2, HEIGHT_PER_PART],
-        [TOP_WIDTH/2, TOP_DEPTH/2, HEIGHT_PER_PART],
-        [-TOP_WIDTH/2, TOP_DEPTH/2, HEIGHT_PER_PART],
+        [-TOP_WIDTH/2, -TOP_DEPTH/2, 0],  # 手前左
+        [TOP_WIDTH/2, -TOP_DEPTH/2, 0],   # 手前右
+        [TOP_WIDTH/2, TOP_DEPTH/2, slope_drop],   # 奥右
+        [-TOP_WIDTH/2, TOP_DEPTH/2, slope_drop],  # 奥左
     ]
 
     top_inner = [
-        [-(TOP_WIDTH/2 - WALL_THICKNESS), -(TOP_DEPTH/2 - WALL_THICKNESS), HEIGHT_PER_PART],
-        [(TOP_WIDTH/2 - WALL_THICKNESS), -(TOP_DEPTH/2 - WALL_THICKNESS), HEIGHT_PER_PART],
-        [(TOP_WIDTH/2 - WALL_THICKNESS), (TOP_DEPTH/2 - WALL_THICKNESS), HEIGHT_PER_PART],
-        [-(TOP_WIDTH/2 - WALL_THICKNESS), (TOP_DEPTH/2 - WALL_THICKNESS), HEIGHT_PER_PART],
+        [-(TOP_WIDTH/2 - WALL_THICKNESS), -(TOP_DEPTH/2 - WALL_THICKNESS), 0],
+        [(TOP_WIDTH/2 - WALL_THICKNESS), -(TOP_DEPTH/2 - WALL_THICKNESS), 0],
+        [(TOP_WIDTH/2 - WALL_THICKNESS), (TOP_DEPTH/2 - WALL_THICKNESS), slope_drop],
+        [-(TOP_WIDTH/2 - WALL_THICKNESS), (TOP_DEPTH/2 - WALL_THICKNESS), slope_drop],
     ]
 
-    # 下部 - 円形 (z = 0)
+    # 下部 - 円形（前端から40mmの位置、傾斜を考慮）
+    # 穴の中心のy座標
+    hole_center_y = -TOP_DEPTH/2 + HOLE_POSITION
+    # その位置での傾斜の高さ
+    hole_base_height = (hole_center_y + TOP_DEPTH/2) / TOP_DEPTH * slope_drop
+
     bottom_outer_points = []
     bottom_inner_points = []
 
     for i in range(SEGMENTS):
         angle = 2 * math.pi * i / SEGMENTS
         x_outer = (BOTTOM_DIAMETER / 2) * math.cos(angle)
-        y_outer = (BOTTOM_DIAMETER / 2) * math.sin(angle)
+        y_outer = hole_center_y + (BOTTOM_DIAMETER / 2) * math.sin(angle)
         x_inner = (BOTTOM_DIAMETER / 2 - WALL_THICKNESS) * math.cos(angle)
-        y_inner = (BOTTOM_DIAMETER / 2 - WALL_THICKNESS) * math.sin(angle)
+        y_inner = hole_center_y + (BOTTOM_DIAMETER / 2 - WALL_THICKNESS) * math.sin(angle)
 
-        bottom_outer_points.append([x_outer, y_outer, 0])
-        bottom_inner_points.append([x_inner, y_inner, 0])
+        # 円周上の各点での高さ（傾斜に沿う）
+        z_outer = (y_outer + TOP_DEPTH/2) / TOP_DEPTH * slope_drop - HEIGHT_PER_PART
+        z_inner = (y_inner + TOP_DEPTH/2) / TOP_DEPTH * slope_drop - HEIGHT_PER_PART
+
+        bottom_outer_points.append([x_outer, y_outer, z_outer])
+        bottom_inner_points.append([x_inner, y_inner, z_inner])
 
     # 外側の面：長方形の各辺から円周への接続
     segments_per_edge = SEGMENTS // 4
@@ -227,21 +243,22 @@ def save_stl(vertices, faces, filename):
     print(f"✅ {filename} を生成しました")
 
 if __name__ == "__main__":
-    print("コインシュートSTLファイル生成中（改訂版）...")
-    print("設計: 上部60mmストレート + 下部60mm集約部")
+    print("コインシュートSTLファイル生成中（傾斜版）...")
+    print(f"設計: 20度傾斜 + 穴を前端から{HOLE_POSITION}mmに配置")
+    print(f"傾斜による高低差: {slope_drop:.1f}mm")
 
     # 上部パーツ生成
-    print("\n上部パーツ生成中（240×315mm ストレート）...")
+    print("\n上部パーツ生成中（240×315mm 傾斜ストレート）...")
     upper_vertices, upper_faces = create_upper_part()
     save_stl(upper_vertices, upper_faces, "coin_chute_upper.stl")
 
     # 下部パーツ生成
-    print("下部パーツ生成中（240×315mm → Φ100mm 集約）...")
+    print(f"下部パーツ生成中（240×315mm → 前端{HOLE_POSITION}mm地点でΦ100mm）...")
     lower_vertices, lower_faces = create_lower_part()
     save_stl(lower_vertices, lower_faces, "coin_chute_lower.stl")
 
     print("\n✅ 完了！以下のファイルが生成されました:")
-    print("- coin_chute_upper.stl (上部パーツ: ストレート部分)")
+    print("- coin_chute_upper.stl (上部パーツ: 傾斜ストレート部分)")
     print("- coin_chute_lower.stl (下部パーツ: 集約部分)")
-    print("\n上部60mm: 幅を保つ")
-    print("下部60mm: 急激に円形出口に集約")
+    print(f"\n傾斜角度: {SLOPE_ANGLE}度")
+    print(f"穴の位置: 前端から{HOLE_POSITION}mm")
