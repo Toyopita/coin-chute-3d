@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-コイン計算機用シュート STL生成スクリプト（箱全体が傾斜版）
-2分割設計: 上部パーツ（傾斜）+ 下部パーツ（集約部）
+コイン計算機用シュート STL生成スクリプト（外見は箱、内側だけ傾斜）
+2分割設計: 上部パーツ + 下部パーツ（集約部）
 
 要件:
-- 上部240×315mmの受け口
-- 箱全体が20度傾斜（手前側120mm、奥側235mm）
+- 外見：240×315×120mmの普通の箱（直方体）
+- 内側の底面だけ20度傾斜
 - 下部で前端から40mmの位置に直径100mmの円形穴に集約
 """
 
@@ -28,46 +28,43 @@ slope_drop = TOP_DEPTH * math.tan(math.radians(SLOPE_ANGLE))
 
 def create_upper_part():
     """
-    上部パーツを生成（箱全体が傾斜）
-    240mm × 315mm の長方形、箱全体が20度傾斜
-    手前側: 60mm、奥側: 60mm + 57.4mm = 117.4mm
+    上部パーツを生成（外見は普通の箱、内側だけ傾斜）
+    外側：240mm × 315mm × 60mm の直方体
+    内側：底面が20度傾斜
     """
     vertices = []
     faces = []
 
-    # 各パーツの傾斜による高低差（半分）
-    half_slope_drop = slope_drop / 2  # 57.4mm
-
-    # 上部 - 長方形の頂点（箱全体が傾斜）
-    # 手前側: HEIGHT_PER_PART、奥側: HEIGHT_PER_PART + half_slope_drop
+    # 上部 - 長方形の頂点（外側は平行）
     top_outer = [
-        [-TOP_WIDTH/2, -TOP_DEPTH/2, HEIGHT_PER_PART + half_slope_drop],  # 手前左
-        [TOP_WIDTH/2, -TOP_DEPTH/2, HEIGHT_PER_PART + half_slope_drop],   # 手前右
-        [TOP_WIDTH/2, TOP_DEPTH/2, HEIGHT_PER_PART + slope_drop],   # 奥右
-        [-TOP_WIDTH/2, TOP_DEPTH/2, HEIGHT_PER_PART + slope_drop],  # 奥左
+        [-TOP_WIDTH/2, -TOP_DEPTH/2, HEIGHT_PER_PART],  # 手前左
+        [TOP_WIDTH/2, -TOP_DEPTH/2, HEIGHT_PER_PART],   # 手前右
+        [TOP_WIDTH/2, TOP_DEPTH/2, HEIGHT_PER_PART],   # 奥右
+        [-TOP_WIDTH/2, TOP_DEPTH/2, HEIGHT_PER_PART],  # 奥左
     ]
 
+    # 内側の上部（外側より少し低い）
     top_inner = [
-        [-(TOP_WIDTH/2 - WALL_THICKNESS), -(TOP_DEPTH/2 - WALL_THICKNESS), HEIGHT_PER_PART + half_slope_drop],
-        [(TOP_WIDTH/2 - WALL_THICKNESS), -(TOP_DEPTH/2 - WALL_THICKNESS), HEIGHT_PER_PART + half_slope_drop],
-        [(TOP_WIDTH/2 - WALL_THICKNESS), (TOP_DEPTH/2 - WALL_THICKNESS), HEIGHT_PER_PART + slope_drop],
-        [-(TOP_WIDTH/2 - WALL_THICKNESS), (TOP_DEPTH/2 - WALL_THICKNESS), HEIGHT_PER_PART + slope_drop],
+        [-(TOP_WIDTH/2 - WALL_THICKNESS), -(TOP_DEPTH/2 - WALL_THICKNESS), HEIGHT_PER_PART - WALL_THICKNESS],
+        [(TOP_WIDTH/2 - WALL_THICKNESS), -(TOP_DEPTH/2 - WALL_THICKNESS), HEIGHT_PER_PART - WALL_THICKNESS],
+        [(TOP_WIDTH/2 - WALL_THICKNESS), (TOP_DEPTH/2 - WALL_THICKNESS), HEIGHT_PER_PART - WALL_THICKNESS],
+        [-(TOP_WIDTH/2 - WALL_THICKNESS), (TOP_DEPTH/2 - WALL_THICKNESS), HEIGHT_PER_PART - WALL_THICKNESS],
     ]
 
-    # 下部 - 箱全体が傾斜
-    # 手前側: half_slope_drop、奥側: slope_drop
+    # 下部 - 外側は平行（直方体）
     bottom_outer = [
-        [-TOP_WIDTH/2, -TOP_DEPTH/2, half_slope_drop],  # 手前左
-        [TOP_WIDTH/2, -TOP_DEPTH/2, half_slope_drop],   # 手前右
-        [TOP_WIDTH/2, TOP_DEPTH/2, slope_drop],   # 奥右
-        [-TOP_WIDTH/2, TOP_DEPTH/2, slope_drop],  # 奥左
+        [-TOP_WIDTH/2, -TOP_DEPTH/2, 0],  # 手前左
+        [TOP_WIDTH/2, -TOP_DEPTH/2, 0],   # 手前右
+        [TOP_WIDTH/2, TOP_DEPTH/2, 0],   # 奥右
+        [-TOP_WIDTH/2, TOP_DEPTH/2, 0],  # 奥左
     ]
 
+    # 内側の底面は傾斜（手前が低く、奥が高い）
     bottom_inner = [
-        [-(TOP_WIDTH/2 - WALL_THICKNESS), -(TOP_DEPTH/2 - WALL_THICKNESS), half_slope_drop],
-        [(TOP_WIDTH/2 - WALL_THICKNESS), -(TOP_DEPTH/2 - WALL_THICKNESS), half_slope_drop],
-        [(TOP_WIDTH/2 - WALL_THICKNESS), (TOP_DEPTH/2 - WALL_THICKNESS), slope_drop],
-        [-(TOP_WIDTH/2 - WALL_THICKNESS), (TOP_DEPTH/2 - WALL_THICKNESS), slope_drop],
+        [-(TOP_WIDTH/2 - WALL_THICKNESS), -(TOP_DEPTH/2 - WALL_THICKNESS), WALL_THICKNESS],  # 手前左
+        [(TOP_WIDTH/2 - WALL_THICKNESS), -(TOP_DEPTH/2 - WALL_THICKNESS), WALL_THICKNESS],   # 手前右
+        [(TOP_WIDTH/2 - WALL_THICKNESS), (TOP_DEPTH/2 - WALL_THICKNESS), WALL_THICKNESS + slope_drop],   # 奥右
+        [-(TOP_WIDTH/2 - WALL_THICKNESS), (TOP_DEPTH/2 - WALL_THICKNESS), WALL_THICKNESS + slope_drop],  # 奥左
     ]
 
     # 外側の4つの壁
@@ -117,38 +114,30 @@ def create_upper_part():
 def create_lower_part():
     """
     下部パーツを生成（集約部分）
-    240mm × 315mm の長方形から前端40mmの位置に直径100mmの円形に集約
-    箱全体が傾斜している
-    手前側: 0mm、奥側: 57.4mm
+    外側：240mm × 315mm × 60mm の直方体
+    内側：底面が傾斜し、前端40mmの位置で直径100mmの円形穴に集約
     """
     vertices = []
     faces = []
 
-    # 各パーツの傾斜による高低差（半分）
-    half_slope_drop = slope_drop / 2  # 57.4mm
-
-    # 上部 - 長方形（箱全体が傾斜）
-    # 手前側: half_slope_drop、奥側: slope_drop
+    # 上部 - 外側は平行（直方体）
     top_outer = [
-        [-TOP_WIDTH/2, -TOP_DEPTH/2, half_slope_drop],  # 手前左
-        [TOP_WIDTH/2, -TOP_DEPTH/2, half_slope_drop],   # 手前右
-        [TOP_WIDTH/2, TOP_DEPTH/2, slope_drop],   # 奥右
-        [-TOP_WIDTH/2, TOP_DEPTH/2, slope_drop],  # 奥左
+        [-TOP_WIDTH/2, -TOP_DEPTH/2, 0],  # 手前左
+        [TOP_WIDTH/2, -TOP_DEPTH/2, 0],   # 手前右
+        [TOP_WIDTH/2, TOP_DEPTH/2, 0],   # 奥右
+        [-TOP_WIDTH/2, TOP_DEPTH/2, 0],  # 奥左
     ]
 
+    # 内側の上部は傾斜
     top_inner = [
-        [-(TOP_WIDTH/2 - WALL_THICKNESS), -(TOP_DEPTH/2 - WALL_THICKNESS), half_slope_drop],
-        [(TOP_WIDTH/2 - WALL_THICKNESS), -(TOP_DEPTH/2 - WALL_THICKNESS), half_slope_drop],
-        [(TOP_WIDTH/2 - WALL_THICKNESS), (TOP_DEPTH/2 - WALL_THICKNESS), slope_drop],
-        [-(TOP_WIDTH/2 - WALL_THICKNESS), (TOP_DEPTH/2 - WALL_THICKNESS), slope_drop],
+        [-(TOP_WIDTH/2 - WALL_THICKNESS), -(TOP_DEPTH/2 - WALL_THICKNESS), -WALL_THICKNESS],  # 手前左
+        [(TOP_WIDTH/2 - WALL_THICKNESS), -(TOP_DEPTH/2 - WALL_THICKNESS), -WALL_THICKNESS],   # 手前右
+        [(TOP_WIDTH/2 - WALL_THICKNESS), (TOP_DEPTH/2 - WALL_THICKNESS), -WALL_THICKNESS + slope_drop],   # 奥右
+        [-(TOP_WIDTH/2 - WALL_THICKNESS), (TOP_DEPTH/2 - WALL_THICKNESS), -WALL_THICKNESS + slope_drop],  # 奥左
     ]
 
-    # 下部 - 円形（前端から40mmの位置、箱全体の傾斜を考慮）
-    # 穴の中心のy座標
+    # 下部 - 円形（前端から40mmの位置、傾斜を考慮）
     hole_center_y = -TOP_DEPTH/2 + HOLE_POSITION
-
-    # 各パーツの傾斜による高低差（半分）
-    half_slope_drop = slope_drop / 2  # 57.4mm
 
     bottom_outer_points = []
     bottom_inner_points = []
@@ -160,10 +149,9 @@ def create_lower_part():
         x_inner = (BOTTOM_DIAMETER / 2 - WALL_THICKNESS) * math.cos(angle)
         y_inner = hole_center_y + (BOTTOM_DIAMETER / 2 - WALL_THICKNESS) * math.sin(angle)
 
-        # 円周上の各点での高さ（箱全体の傾斜に沿う）
-        # 下部パーツの底面は手前側で0mm、奥側でhalf_slope_dropの高さ
-        z_outer = (y_outer + TOP_DEPTH/2) / TOP_DEPTH * half_slope_drop - HEIGHT_PER_PART
-        z_inner = (y_inner + TOP_DEPTH/2) / TOP_DEPTH * half_slope_drop - HEIGHT_PER_PART
+        # 円周上の各点での高さ（内側の傾斜に沿う）
+        z_outer = (y_outer + TOP_DEPTH/2) / TOP_DEPTH * slope_drop - HEIGHT_PER_PART - WALL_THICKNESS
+        z_inner = (y_inner + TOP_DEPTH/2) / TOP_DEPTH * slope_drop - HEIGHT_PER_PART - WALL_THICKNESS * 2
 
         bottom_outer_points.append([x_outer, y_outer, z_outer])
         bottom_inner_points.append([x_inner, y_inner, z_inner])
@@ -255,24 +243,24 @@ def save_stl(vertices, faces, filename):
     print(f"✅ {filename} を生成しました")
 
 if __name__ == "__main__":
-    print("コインシュートSTLファイル生成中（箱全体が傾斜版）...")
-    print(f"設計: 20度傾斜（箱全体） + 穴を前端から{HOLE_POSITION}mmに配置")
-    print(f"傾斜による高低差: {slope_drop:.1f}mm")
-    print(f"手前側の高さ: {HEIGHT_PER_PART * 2:.0f}mm、奥側の高さ: {HEIGHT_PER_PART * 2 + slope_drop:.1f}mm")
+    print("コインシュートSTLファイル生成中（外見は箱、内側だけ傾斜）...")
+    print(f"設計: 外見は240×315×{HEIGHT_PER_PART * 2}mmの直方体")
+    print(f"内側の底面のみ20度傾斜（高低差: {slope_drop:.1f}mm）")
+    print(f"穴の位置: 前端から{HOLE_POSITION}mm")
 
     # 上部パーツ生成
-    print("\n上部パーツ生成中（240×315mm 箱全体が傾斜）...")
+    print("\n上部パーツ生成中（外見は箱、内側だけ傾斜）...")
     upper_vertices, upper_faces = create_upper_part()
     save_stl(upper_vertices, upper_faces, "coin_chute_upper.stl")
 
     # 下部パーツ生成
-    print(f"下部パーツ生成中（240×315mm → 前端{HOLE_POSITION}mm地点でΦ100mm）...")
+    print(f"下部パーツ生成中（内側傾斜 → 前端{HOLE_POSITION}mm地点でΦ100mm）...")
     lower_vertices, lower_faces = create_lower_part()
     save_stl(lower_vertices, lower_faces, "coin_chute_lower.stl")
 
     print("\n✅ 完了！以下のファイルが生成されました:")
-    print("- coin_chute_upper.stl (上部パーツ: 箱全体が傾斜)")
+    print("- coin_chute_upper.stl (上部パーツ: 外見は箱、内側傾斜)")
     print("- coin_chute_lower.stl (下部パーツ: 集約部分)")
-    print(f"\n傾斜角度: {SLOPE_ANGLE}度")
+    print(f"\n外見: 240×315×{HEIGHT_PER_PART * 2}mmの直方体")
+    print(f"内側傾斜角度: {SLOPE_ANGLE}度")
     print(f"穴の位置: 前端から{HOLE_POSITION}mm")
-    print(f"箱全体の高さ: 手前側 {HEIGHT_PER_PART * 2:.0f}mm、奥側 {HEIGHT_PER_PART * 2 + slope_drop:.1f}mm")
